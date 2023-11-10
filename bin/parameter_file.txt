@@ -1,0 +1,48 @@
+QUERY=""
+# QUERY is the fasta file for which prediction are performed.
+# If BLASTPATH is specified then QUERY is aligned with TARGET 
+# and the prediction is applied for the sequences from TARGET 
+# that match the ones in QUERY 
+
+
+ALLELES=""
+# ALLELES is a 1-column txt file with the identifier of the alleles
+
+PREDICTION_MODE=""
+# PREDICTION_MODE specifies if the QUERY file contains full length protein sequences
+# or small peptide/epitopes. Two possible values: "protein", "peptide". 
+# If the mode "protein" is selected the program will identity a 9-mer core for each 
+# window of size W of the sequence in QUERY.
+# If the mode "peptide" is selected the program predict one 9-mer core for each 
+# sequence in query
+
+W="15"
+# W is the window size for the prediction, default = 15
+
+
+NETMHCIIPANPATH=""
+# NETMHCIIPANPATH is the relative or absolute path for the folder "mhc_ii" of the
+# iedb prediction program. Mandatoy to apply netmhciipan 
+
+
+RESULTS_FOLDER="./results_folder_name/"
+# RESULTS_FOLDER is name of the resutls folder
+
+
+
+################## If alignment has to be performed, compile below
+
+TARGET=""
+# TARGET is the fasta file to which QUERY is aligned to
+
+BLASTPATH=""
+# relative or absolute path to the blast folder "ncbi-blast-2.12.0+/"
+
+ALGN_FILT_PAR=""
+# ALGN_FILT_PAR parameter choose to filter alignment, possible values: "evalue", "bitscore", "identity"
+# if nothing is specified all the alignment are reported in the summary file
+
+ALGN_FILT_THR=""
+# ALGN_FILT_THR is the cutoff to filter the alignments, i.e. "0.05"
+
+
