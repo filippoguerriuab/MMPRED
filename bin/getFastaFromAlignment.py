@@ -19,6 +19,9 @@ def filter_alignment(align_file, outfile, fasta_db, filter_par, filter_value, W)
 		subject_start = line[6]
 		subject_end = line[7]
 		query_aligned_seq = line[1]
+
+		if '-' in subject_aligned_seq:
+			continue
 		start = int(line[6])-1
 		end = int(line[7])
 
@@ -44,6 +47,15 @@ def filter_alignment(align_file, outfile, fasta_db, filter_par, filter_value, W)
 				acceptable_score = True
 			else:
 				acceptable_score = False
+		
+		elif filter_par == 'identity':
+			score = float(line[9])
+			if score > filter_value: 
+				acceptable_score = True
+			else:
+				acceptable_score = False
+		
+		
 
 		if not acceptable_score:
 			continue
@@ -123,4 +135,3 @@ if __name__ == '__main__':
 	filter_value = getOptPar(iargs, 'filter_value', 0.05, 'float')
 	W = getOptPar(iargs, 'W', 15, 'int')
 	filter_alignment(align_file, outfile, fasta_db, filter_par, filter_value, W)
-
