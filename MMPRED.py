@@ -2,13 +2,13 @@
 
 #################### TO RUN EPITOPE PREDICTION ONLY ####################
 
-python3 MHCIIPRED.py -q QUERY -a ALLELE
+python3 MMPRED.py -q QUERY -a ALLELE
     - QUERY (mandatory) is the fasta file to which prediction are applied
     - ALLELE (mandatory) is a 1-column txt file with the identifier of the alleles
     this script applies the CNNPEPPRED prediction for the alleles specified in ALLELE to the protein sequences in FASTA 
 
 
-python3 MHCIIPRED.py -q ... -a ... -n NETMHCIIPAN_PATH
+python3 MMPRED.py.py -q ... -a ... -n NETMHCIIPAN_PATH
     - NETMHCIIPAN_PATH (optional) is the relative or absolute path for the folder "mhc_ii" of the
        iedb prediction program. metti link and version ###############
 
@@ -19,7 +19,7 @@ python3 MHCIIPRED.py ... -m MODE
       If MODE is set to "peptide" the program predict one 9-mer core for each sequence in QUERY
       DEFAULT = protein
 
-python3 MHCIIPRED.py ... -m protein -w W
+python3 MMPRED.py.py ... -m protein -w W
     - W (optional) is the window size for the prediction, default = 15. Is used only when MODE = protein
 
 
@@ -30,7 +30,7 @@ python3 MHCIIPRED.py ... -r RESULTS_FOLDER
 
 ##################### TO RUN ALIGNMENT AND EPITOPE PREDICTION #####################
 
-python3 MHCPREPRED.py -b BLAST_PATH -q QUERY -t TARGET -a ...
+python3 MMPRED.py.py -b BLAST_PATH -q QUERY -t TARGET -a ...
     - BLAST_PATH (mandatory) relative or absolute path to the blast folder "ncbi-blast-2.12.0+"
     - QUERY (mandatory) fasta file
     - TARGET (mandatory) fasta file 
@@ -39,19 +39,29 @@ python3 MHCPREPRED.py -b BLAST_PATH -q QUERY -t TARGET -a ...
 
 
 
-python3 MHCPREPRED.py -b BLAST_PATH -q QUERY -t TARGET -a ... -afp ALGN_FILT_PAR -afv ALGN_FILT_VAL
+python3 MMPRED.py -b BLAST_PATH -q QUERY -t TARGET -a ... -afp ALGN_FILT_PAR -afv ALGN_FILT_VAL
     - ALGN_FILT_PAR (optional) parameter choosen to filter alignment, possible values: "evalue", "bitscore". DEFAULT = evalue
     - ALGN_FILT_VAL (optional) is the cutoff to filter the alignments. DEFAULT = 0.05
 
+python3 MMPRED.py ... -alg_mode ALG_MODE
+	- ALGN_MODE (optional) can be either "blastp" or "psiblast"
+	
+python3 MMPRED.py ... -alg_mode psiblast -pssm_comp_db EPITOPE_DB
+	- EPITOPE_DB (mandatory if psiblast is used) is the fasta file of the epitope dataset with which the pssm is computed
+
+
+python3 MMPRED.py ... -n_core N
+	- N is the maximum number of CPU to be used, parallel computation is used only when psiblast is applied
+	
 
 
 ##################### TO RUN THE PIPELINE FROM THE PARAMETER FILE #####################
 
-python3 MHCPREPRED.py -getPF PARAM_FILE_NAME
+python3 MMPRED.py.py -getPF PARAM_FILE_NAME
     - PARAM_FILE_NAME: name of the empty parameter file
     An empty parameter named PARAM_FILE_NAME file is generated using this script. Istruction on how to use it are in the file itself
 
-python3 MHCPREPRED.py -PF PARAM_FILE_NAME
+python3 MMPRED.py.py -PF PARAM_FILE_NAME
     runs the pipeline with the parameters specified in PARAM_FILE_NAME
 
 
@@ -78,24 +88,27 @@ import numpy as np
 from getFastaFromAlignment import filter_alignment as getFastaFromAlignment
 from fasta_utilities import read_fasta
 from eliminateRedundancyFromFasta import eliminateRedundancy
-
+from concurrent.futures import ThreadPoolExecutor
 
 
 class MHCIIPRED:
 
     def get_input(self, iargs):
-        idict = {  '-q':False, \
-                   '-t':False, \
-                   '-a':False, \
-                   '-m':'protein', \
-                   '-w':15, \
-                   '-b':False, \
-                   '-n':False,\
-                   '-PF':False,\
-                   '-getPF':False,\
-                   '-r':'./results/',\
-                   '-afp':'evalue',\
-                   '-afv':0.05}
+        idict = {  '-q':False, 
+                   '-t':False, 
+                   '-a':False, 
+                   '-m':'protein', 
+                   '-w':15, 
+                   '-b':False, 
+                   '-n':False,
+                   '-PF':False,
+                   '-getPF':False,
+                   '-r':'./results/',
+                   '-afp':'evalue',
+                   '-afv':0.05, 
+                   '-alg_mode':'blastp',
+                   '-pssm_comp_db':False,
+                   '-n_core':1}
 
         
         #check if input format is right
@@ -106,7 +119,7 @@ class MHCIIPRED:
 
         # read the inputs
         for key in iargs:
-            if key in ['-q', '-m', '-t', '-s', '-n', '-r', '-a', '-w', '-b', '-afp', '-afv', '-PF', '-getPF']:
+            if key in ['-q', '-m', '-t', '-s', '-n', '-r', '-a', '-w', '-b', '-afp', '-afv', '-PF', '-getPF', '-alg_mode', '-pssm_comp_db', '-n_core']:
                 if key in idict:
                     idict[key] = iargs[iargs.index(key)+1]
                 else:
@@ -137,42 +150,12 @@ class MHCIIPRED:
 
 
 
-        #check if the files in input exists
-        """
-        if not os.path.exists(idict['-b']):
-            print('path to BLAST does not exist')
-            return
-
-        if not os.path.exists(idict['-n']):
-            print('path to NETMHCIIPAN does not exist')
-            return
-
-        if not os.path.exists(idict['-q']):
-            print('path to QUERY does not exist')
-            return
-        
-        if not os.path.exists(idict['-t']):
-            print('path to TARGET does not exist')
-            return
-
-        if not os.path.exists(idict['-n']):
-            print('path to NETMHCIIPAN does not exist')
-            return
-
-        if not os.path.exists(idict['-a']):
-            print('path to ALLELE does not exist')
-            return
-
-
-        """
-
   
     def run_analysis(self):
 
 
 
-        print(self.idict)
-
+        
         # 1 - parsing the arguments
         wd = os.getcwd()
         query     = os.path.realpath(self.idict['-q'])
@@ -224,22 +207,21 @@ class MHCIIPRED:
 
         # if a blast path is specified, run the alignment 
         blast_path = self.idict['-b']
-        if blast_path:
-            if os.path.exists(blast_path):
-                self.run_alignment = True
-                blast_path=os.path.realpath(blast_path)
-                print('RUNNING ALIGNMENT')
-                query, any_seq_matching = self.runAlignment(blast_path, query, target, results_path)
-                if not any_seq_matching:
-                    print('No alignement satisified the filter: '+self.idict['-afp']+','+str(self.idict['-afv']))
-                    return
-                #self.idict['-m'] = 'peptide'
-            else:
-                print('path to blast does not exists')
-                return
-        else:
-            self.run_alignment = False
+        if not os.path.exists(blast_path):
+            raise IOError('path to blast does not exists')
+        self.run_alignment = True
+        blast_path=os.path.realpath(blast_path)
+        print('RUNNING ALIGNMENT')
+        if blast_path and self.idict['-alg_mode'] == 'blastp':
+            query, any_seq_matching = self.runAlignment(blast_path, query, target, results_path)
 
+        elif blast_path and self.idict['-alg_mode'] == 'psiblast':
+            query, any_seq_matching = self.runAlignmentPssm(blast_path, query, target, self.idict['-pssm_comp_db'], results_path)
+
+
+        if not any_seq_matching:
+            print('No alignement satisified the filter: '+self.idict['-afp']+','+str(self.idict['-afv']))
+            return
         pred_mode = self.idict['-m']
         W         = int(self.idict['-w'])
 
@@ -316,11 +298,18 @@ class MHCIIPRED:
                         self.idict['-afp'] = VAL
                     elif PAR == 'ALGN_FILT_THR':
                         self.idict['-afv'] = float(VAL)
+                    elif PAR == 'ALGN_MODE':
+                        self.idict['-alg_mode'] = VAL
+                    elif PAR == 'PSSM_COMP_DB':
+                        self.idict['-pssm_comp_db'] = os.path.abspath(VAL)
+                    elif PAR == 'N_CORE':
+                        self.idict['-n_core'] = int(VAL)
+                        
                     else:
                         print([PAR, VAL])
 
 
-
+        print(self.idict)
 
    
 
@@ -714,6 +703,127 @@ class MHCIIPRED:
         return query, any_seq_matching
 
 
+
+
+    def runAlignmentPssm(self, blast_path, query, target, epitopes_db, results_path):
+
+
+
+
+        align_respath = results_path+'/alignment/'.replace('//','/')
+        if os.path.exists(align_respath):
+            shutil.rmtree(align_respath)
+        os.mkdir(align_respath)
+        blast_path = blast_path+'/bin/'.replace('//','/')
+        
+        query, any_match = self.pssm_ep_align(blast_path, query, target, epitopes_db)
+
+
+
+        return query, any_match
+
+    def pssm_ep_align(self, blast_path, query_fasta, target_fasta, epitope_db):
+
+
+        # 1 - compute_pssm
+        pssm_folder = self.compute_all_pssms(blast_path, query_fasta, target_fasta, epitope_db)
+        alg_res_name = (self.idict['-r']+'/alignment/pssm_algn_query_vs_target.csv').replace('//', '/')
+
+        self.sh_process_wrapper(f"cat {pssm_folder}*.csv | grep -v -e '^$' -e 'CONVERGED' -i > {alg_res_name}")
+
+        filter_par = self.idict['-afp']
+        filter_value = float(self.idict['-afv'])
+        matching_seqs_file =(self.idict['-r']+'/alignment/target_seq_matching_query.fasta').replace('//', '/')
+        any_seq_matching = getFastaFromAlignment(alg_res_name, matching_seqs_file,
+                                 target_fasta, filter_par, filter_value, self.idict['-w'])
+
+
+        #eliminate redundancy from matching sequences
+        query_nr = matching_seqs_file.replace('_query.fasta', '_query_nr.fasta')
+        if any_seq_matching:
+            
+            self.alignment_redundaant_seq_dict = \
+            eliminateRedundancy(matching_seqs_file, 
+                                query_nr,
+                                self.idict['-r']+'/alignment/fasta_redundancy_db.txt')
+
+            
+
+        return query_nr, any_seq_matching
+
+    def compute_all_pssms(self, blast_path, query_fasta, target_fasta, epitope_db):
+
+
+        max_threads=self.idict['-n_core']
+
+
+        pssm_folder =  (self.idict['-r']+'/alignment/PSSMs/').replace('//', '/')
+        if os.path.exists(pssm_folder):
+            shutil.rmtree(pssm_folder)
+        os.makedirs(pssm_folder)
+
+
+        self.sh_process_wrapper(f"{blast_path}makeblastdb -in {epitope_db} -dbtype prot")
+        self.sh_process_wrapper(f"{blast_path}makeblastdb -in {target_fasta} -dbtype prot")
+        query_eps_dict = self.read_fasta_to_dict(query_fasta)
+
+
+
+
+
+        with ThreadPoolExecutor(max_workers=max_threads) as executor:
+            futures = []
+            for ep_name, ep_seq in query_eps_dict.items():
+                futures.append(executor.submit(self.compute_pssm_n_align, blast_path, pssm_folder, ep_name, ep_seq, epitope_db, target_fasta))
+
+            # Wait for all tasks to complete
+            for future in futures:
+                future.result()
+
+        return pssm_folder
+
+
+
+    def compute_pssm_n_align(self, blast_path, pssm_folder, ep_name, ep_seq, epitope_db, target_fasta):
+        
+
+        pssm_1_asn = os.path.join(pssm_folder, (ep_name+'_pssm1.asn').replace('|', '_'))
+        pssm_1_ascii = pssm_1_asn.replace('_pssm1.asn', '_pssm1.ascii')
+        currep_fasta_in = os.path.join(pssm_folder, (ep_name+'.fasta').replace('|', '_'))
+        
+        with open(currep_fasta_in, 'w') as f:
+            f.write(f'>{ep_name}\n{ep_seq}\n')
+
+        # 1 -running alignment against epitope_db
+        
+        command = f"{blast_path}psiblast -query {currep_fasta_in} -db {epitope_db} -inclusion_ethresh 0.05 \
+                    -num_iterations 5 -out_pssm {pssm_1_asn}\
+                    -pseudocount 20 \
+                    -out_ascii_pssm {pssm_1_ascii}\
+                    -save_pssm_after_last_round"
+        stdout,_ = self.sh_process_wrapper(command)
+
+
+ 
+        # 2 running alignment against target 
+
+
+        command = f"{blast_path}psiblast -in_pssm {pssm_1_asn} -db {target_fasta}\
+                    -num_iterations 1 -inclusion_ethresh 10\
+                    -outfmt \"10 delim=, qaccver qseq qstart qend saccver sseq sstart  \
+                    send bitscore pident length mismatch gapopen evalue\" \
+                    -out {pssm_1_asn.replace('_pssm1.asn', '.csv')}"
+        stdout,_  = self.sh_process_wrapper(command)
+
+
+
+
+
+
+
+
+
+
     def generate_summary(self):
 
         
@@ -747,6 +857,8 @@ class MHCIIPRED:
                 target_core_start = str(pred[2])
                 target_core_end = str(pred[3])
                 method, score, rank, allele = [str(x) for x in pred[4:8]]
+                if float(rank) > 10:
+                    continue
                 allele = self.convert_allele_format(allele)
                 for red_desc in id_redundant_ids_dict[pred[1][1::]]:
                     red_desc = red_desc.split('@@@')
@@ -790,6 +902,48 @@ class MHCIIPRED:
         return allele
 
 
+
+    def sh_process_wrapper(self, command, stdout_return=False, stderr_return=False):
+        #print(command)
+        process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL)
+
+        # Read the standard output and standard error
+        stdout, stderr = process.communicate()
+
+        # Decode the byte strings to UTF-8 and print them
+        if stdout_return and stdout:
+            print("Standard Output:")
+            print(stdout.decode('utf-8'))
+        if stderr_return and stderr:
+            print("Standard Error:")
+            print(stderr.decode('utf-8'))
+            raise IOError(stderr.decode('utf-8'))
+        process.wait()
+
+
+        return stdout.decode('utf-8'), stderr.decode('utf-8')
+
+
+    def read_fasta_to_dict(self, file_path):
+        fasta_dict = {}
+        with open(file_path, 'r') as fasta_file:
+            seq_id = None
+            sequence = ''
+            for line in fasta_file:
+                line = line.strip()
+                if line.startswith('>'):
+                    # If sequence ID is not None, store the previous sequence
+                    if seq_id is not None:
+                        fasta_dict[seq_id] = sequence
+                    # Extract sequence ID
+                    seq_id = line[1:]
+                    sequence = ''
+                else:
+                    sequence += line
+            # Store the last sequence
+            if seq_id is not None:
+                fasta_dict[seq_id] = sequence
+        return fasta_dict
 
 
 
