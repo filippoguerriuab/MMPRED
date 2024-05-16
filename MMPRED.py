@@ -798,7 +798,7 @@ class MHCIIPRED:
         
         command = f"{blast_path}psiblast -query {currep_fasta_in} -db {epitope_db} -inclusion_ethresh 0.05 \
                     -num_iterations 5 -out_pssm {pssm_1_asn}\
-                    -pseudocount 20 \
+                    -pseudocount 1 \
                     -out_ascii_pssm {pssm_1_ascii}\
                     -save_pssm_after_last_round"
         stdout,_ = self.sh_process_wrapper(command)
