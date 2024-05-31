@@ -80,20 +80,22 @@ def filter_alignment(align_file, outfile, fasta_db, filter_par, filter_value, W)
 				start_  = start - int(diff/2+0.5)				
 				end_  = end + int(diff/2-0.5)	
 				
+
 			if start_ < 0:
 				end_ = end_ + (-start_)
-				start_ = 1
-				Wmer_seq = whole_seq[0:end_]	
+				start_ = 0
+				
 
 			elif end_ > len(whole_seq)-1:
 				start_ = start_ - (end_-len(whole_seq)) 
-				end_ = len(whole_seq)				
-				Wmer_seq = whole_seq[start_:None]
-				
-			else:
-				Wmer_seq = whole_seq[start_:end_]
+				end_ = len(whole_seq)		
+					
 
-			start = start_
+
+
+			Wmer_seq = whole_seq[start_:end_+1]	
+
+			start = start_+1
 			end = end_
 			output_seq = Wmer_seq
 
@@ -109,7 +111,7 @@ def filter_alignment(align_file, outfile, fasta_db, filter_par, filter_value, W)
 				out_cont.extend(['>'+epitope_name, Wmer_seq])
 			"""
 
-		epitope_name = '|'.join([subjct, str(start+1), str(end)])
+		epitope_name = '|'.join([subjct, str(start), str(end)])
 		epitope_name += '@@@'+query
 		epitope_name += '@@@'+'|'.join([ident, evalue, bitscore, subject_aligned_seq, subject_start, subject_end, query_aligned_seq])+'@@@'
 		out_cont.extend(['>'+epitope_name, output_seq])
@@ -135,3 +137,4 @@ if __name__ == '__main__':
 	filter_value = getOptPar(iargs, 'filter_value', 0.05, 'float')
 	W = getOptPar(iargs, 'W', 15, 'int')
 	filter_alignment(align_file, outfile, fasta_db, filter_par, filter_value, W)
+
