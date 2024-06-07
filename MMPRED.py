@@ -729,7 +729,14 @@ class MHCIIPRED:
         pssm_folder = self.compute_all_pssms(blast_path, query_fasta, target_fasta, epitope_db)
         alg_res_name = (self.idict['-r']+'/alignment/pssm_algn_query_vs_target.csv').replace('//', '/')
 
-        self.sh_process_wrapper(f"cat {pssm_folder}*.csv | grep -v -e '^$' -e 'CONVERGED' -i > {alg_res_name}")
+	files = glob.glob(f"{pssm_folder}*.csv")
+        with open(alg_res_name, 'w') as outfile:
+            for file in files:
+                with open(file, 'r') as infile:
+                    for line in infile:
+                        if line.strip() and 'CONVERGED' not in line.upper():
+                            outfile.write(line)
+
 
         filter_par = self.idict['-afp']
         filter_value = float(self.idict['-afv'])
