@@ -8,15 +8,15 @@ python3 MMPRED.py -q QUERY -a ALLELE
     this script applies the CNNPEPPRED prediction for the alleles specified in ALLELE to the protein sequences in FASTA 
 
 
-python3 MMPRED.py.py -q ... -a ... -n NETMHCIIPAN_PATH
+python3 MMPRED.py -q ... -a ... -n NETMHCIIPAN_PATH
     - NETMHCIIPAN_PATH (optional) is the relative or absolute path for the folder "mhc_ii" of the
-       iedb prediction program. metti link and version ###############
+       iedb prediction program.
 
-python3 MHCIIPRED.py ... -m MODE
+python3 MMPRED.py ... -m MODE
     - MODE (optional) can be either "protein" or "peptide". It specifies if the QUERY file contains full length
       protein sequences or small peptide/epitopes. 
       If MODE is set to "protein" the program will identity a 9-mer core for each window of size W of the sequences in QUERY
-      If MODE is set to "peptide" the program predict one 9-mer core for each sequence in QUERY
+      If MODE is set to "peptide" the program predicts one 9-mer core for each sequence in QUERY
       DEFAULT = protein
 
 python3 MMPRED.py.py ... -m protein -w W
@@ -24,7 +24,7 @@ python3 MMPRED.py.py ... -m protein -w W
 
 
 python3 MHCIIPRED.py ... -r RESULTS_FOLDER
-    - RESULTS_FOLDER (optional) is the name of the resutls folder
+    - RESULTS_FOLDER (optional) is the name of the results folder
 
 
 
@@ -59,7 +59,7 @@ python3 MMPRED.py ... -n_core N
 
 python3 MMPRED.py.py -getPF PARAM_FILE_NAME
     - PARAM_FILE_NAME: name of the empty parameter file
-    An empty parameter named PARAM_FILE_NAME file is generated using this script. Istruction on how to use it are in the file itself
+    An empty parameter named PARAM_FILE_NAME file is generated using this script. Instructions on how to use it are in the file itself
 
 python3 MMPRED.py.py -PF PARAM_FILE_NAME
     runs the pipeline with the parameters specified in PARAM_FILE_NAME
@@ -79,6 +79,7 @@ import shutil
 import re
 import pandas as pd
 import numpy as np
+import glob
 from getOptPar import getOptPar
 import subprocess
 from model_initializer2 import CNNPepPred
@@ -111,6 +112,10 @@ class MHCIIPRED:
                    '-n_core':1}
 
         
+
+
+
+
         #check if input format is right
         if not(all([iargs[i][0] == '-' for i in range(1,len(iargs),2)])) or iargs[-1][0] == '-':
             print('error in command line format')
@@ -135,6 +140,10 @@ class MHCIIPRED:
             shutil.copy('./bin/parameter_file.txt', param_filename)
             return False
 
+  
+
+
+
         # - if the the parameter file is passed in input "-PF" parse it and extract idict
         if self.idict['-PF']:
             parameter_file = self.idict['-PF']
@@ -142,8 +151,10 @@ class MHCIIPRED:
 
 
 
+        print(self.idict)
 
-        #print(self.idict)
+
+
 
 
         return True
@@ -207,21 +218,26 @@ class MHCIIPRED:
 
         # if a blast path is specified, run the alignment 
         blast_path = self.idict['-b']
-        if not os.path.exists(blast_path):
-            raise IOError('path to blast does not exists')
-        self.run_alignment = True
-        blast_path=os.path.realpath(blast_path)
-        print('RUNNING ALIGNMENT')
-        if blast_path and self.idict['-alg_mode'] == 'blastp':
-            query, any_seq_matching = self.runAlignment(blast_path, query, target, results_path)
+       
+        if blast_path:
+            if not os.path.exists(blast_path):
+                raise IOError('path to blast does not exists')
+            self.run_alignment = True
+            blast_path=os.path.realpath(blast_path)
+            print('RUNNING ALIGNMENT')
+            if blast_path and self.idict['-alg_mode'] == 'blastp':
+                query, any_seq_matching = self.runAlignment(blast_path, query, target, results_path)
 
-        elif blast_path and self.idict['-alg_mode'] == 'psiblast':
-            query, any_seq_matching = self.runAlignmentPssm(blast_path, query, target, self.idict['-pssm_comp_db'], results_path)
+            elif blast_path and self.idict['-alg_mode'] == 'psiblast':
+                query, any_seq_matching = self.runAlignmentPssm(blast_path, query, target, self.idict['-pssm_comp_db'], results_path)
 
 
-        if not any_seq_matching:
-            print('No alignement satisified the filter: '+self.idict['-afp']+','+str(self.idict['-afv']))
-            return
+            if not any_seq_matching:
+                print('No alignement satisified the filter: '+self.idict['-afp']+','+str(self.idict['-afv']))
+                return
+        else:
+            self.run_alignment = False
+            
         pred_mode = self.idict['-m']
         W         = int(self.idict['-w'])
 
@@ -729,13 +745,18 @@ class MHCIIPRED:
         pssm_folder = self.compute_all_pssms(blast_path, query_fasta, target_fasta, epitope_db)
         alg_res_name = (self.idict['-r']+'/alignment/pssm_algn_query_vs_target.csv').replace('//', '/')
 
-	files = glob.glob(f"{pssm_folder}*.csv")
+        #self.sh_process_wrapper(f"cat {pssm_folder}*.csv | grep -v -e '^$' -e 'CONVERGED' -i > {alg_res_name}")
+
+        files = glob.glob(f"{pssm_folder}*.csv")
         with open(alg_res_name, 'w') as outfile:
             for file in files:
                 with open(file, 'r') as infile:
                     for line in infile:
                         if line.strip() and 'CONVERGED' not in line.upper():
                             outfile.write(line)
+
+
+
 
 
         filter_par = self.idict['-afp']
@@ -810,7 +831,6 @@ class MHCIIPRED:
                     -save_pssm_after_last_round"
         stdout,_ = self.sh_process_wrapper(command)
 
-
  
         # 2 running alignment against target 
 
@@ -821,8 +841,8 @@ class MHCIIPRED:
                     send bitscore pident length mismatch gapopen evalue\" \
                     -out {pssm_1_asn.replace('_pssm1.asn', '.csv')}"
         stdout,_  = self.sh_process_wrapper(command)
-
-
+        #print(_)
+        
 
 
 
