@@ -45,4 +45,13 @@ ALGN_FILT_PAR=""
 ALGN_FILT_THR=""
 # ALGN_FILT_THR is the cutoff to filter the alignments, i.e. "0.05"
 
+ALG_MODE=""
+#"blastp" or "psiblast"
+
+PSSM_COMP_DB=""
+#fasta file for the computation of the pssms
+
+N_CORE=""
+#number of core to compute the pssms in parallel, is used only when the alignment mode is psiblast
+
 
