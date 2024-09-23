@@ -2,35 +2,35 @@
 
 #################### TO RUN EPITOPE PREDICTION ONLY ####################
 
-python3 MMPRED.py -q QUERY -a ALLELE
+python3 MMPred.py -q QUERY -a ALLELE
     - QUERY (mandatory) is the fasta file to which prediction are applied
     - ALLELE (mandatory) is a 1-column txt file with the identifier of the alleles
     this script applies the CNNPEPPRED prediction for the alleles specified in ALLELE to the protein sequences in FASTA 
 
 
-python3 MMPRED.py -q ... -a ... -n NETMHCIIPAN_PATH
+python3 MMPred.py -q ... -a ... -n NETMHCIIPAN_PATH
     - NETMHCIIPAN_PATH (optional) is the relative or absolute path for the folder "mhc_ii" of the
        iedb prediction program.
 
-python3 MMPRED.py ... -m MODE
+python3 MMPred.py ... -m MODE
     - MODE (optional) can be either "protein" or "peptide". It specifies if the QUERY file contains full length
       protein sequences or small peptide/epitopes. 
       If MODE is set to "protein" the program will identity a 9-mer core for each window of size W of the sequences in QUERY
       If MODE is set to "peptide" the program predicts one 9-mer core for each sequence in QUERY
       DEFAULT = protein
 
-python3 MMPRED.py.py ... -m protein -w W
+python3 MMPred.py.py ... -m protein -w W
     - W (optional) is the window size for the prediction, default = 15. Is used only when MODE = protein
 
 
-python3 MHCIIPRED.py ... -r RESULTS_FOLDER
+python3 MMPred.py ... -r RESULTS_FOLDER
     - RESULTS_FOLDER (optional) is the name of the results folder
 
 
 
 ##################### TO RUN ALIGNMENT AND EPITOPE PREDICTION #####################
 
-python3 MMPRED.py.py -b BLAST_PATH -q QUERY -t TARGET -a ...
+python3 MMPred.py.py -b BLAST_PATH -q QUERY -t TARGET -a ...
     - BLAST_PATH (mandatory) relative or absolute path to the blast folder "ncbi-blast-2.12.0+"
     - QUERY (mandatory) fasta file
     - TARGET (mandatory) fasta file 
@@ -39,29 +39,29 @@ python3 MMPRED.py.py -b BLAST_PATH -q QUERY -t TARGET -a ...
 
 
 
-python3 MMPRED.py -b BLAST_PATH -q QUERY -t TARGET -a ... -afp ALGN_FILT_PAR -afv ALGN_FILT_VAL
+python3 MMPred.py -b BLAST_PATH -q QUERY -t TARGET -a ... -afp ALGN_FILT_PAR -afv ALGN_FILT_VAL
     - ALGN_FILT_PAR (optional) parameter choosen to filter alignment, possible values: "evalue", "bitscore". DEFAULT = evalue
     - ALGN_FILT_VAL (optional) is the cutoff to filter the alignments. DEFAULT = 0.05
 
-python3 MMPRED.py ... -alg_mode ALG_MODE
+python3 MMPred.py ... -alg_mode ALG_MODE
 	- ALGN_MODE (optional) can be either "blastp" or "psiblast"
 	
-python3 MMPRED.py ... -alg_mode psiblast -pssm_comp_db EPITOPE_DB
+python3 MMPred.py ... -alg_mode psiblast -pssm_comp_db EPITOPE_DB
 	- EPITOPE_DB (mandatory if psiblast is used) is the fasta file of the epitope dataset with which the pssm is computed
 
 
-python3 MMPRED.py ... -n_core N
+python3 MMPred.py ... -n_core N
 	- N is the maximum number of CPU to be used, parallel computation is used only when psiblast is applied
 	
 
 
 ##################### TO RUN THE PIPELINE FROM THE PARAMETER FILE #####################
 
-python3 MMPRED.py.py -getPF PARAM_FILE_NAME
+python3 MMPred.py.py -getPF PARAM_FILE_NAME
     - PARAM_FILE_NAME: name of the empty parameter file
     An empty parameter named PARAM_FILE_NAME file is generated using this script. Instructions on how to use it are in the file itself
 
-python3 MMPRED.py.py -PF PARAM_FILE_NAME
+python3 MMPred.py.py -PF PARAM_FILE_NAME
     runs the pipeline with the parameters specified in PARAM_FILE_NAME
 
 
@@ -92,7 +92,7 @@ from eliminateRedundancyFromFasta import eliminateRedundancy
 from concurrent.futures import ThreadPoolExecutor
 
 
-class MHCIIPRED:
+class MMPRED:
 
     def get_input(self, iargs):
         idict = {  '-q':False, 
@@ -978,6 +978,6 @@ class MHCIIPRED:
 if __name__ == '__main__':
     iargs = sys.argv
 
-    X = MHCIIPRED()
+    X = MMPRED()
     if X.get_input(iargs):
         X.run_analysis()
